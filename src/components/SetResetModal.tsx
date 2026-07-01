@@ -58,18 +58,24 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
         <div className="mb-6">
           <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">Exact Date & Time</label>
           <div className="grid grid-cols-2 gap-4">
-            <input 
-              type="date" 
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
-            />
-            <input 
-              type="time" 
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
-            />
+            <div>
+              <input 
+                type="date" 
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
+              />
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">dd/mm/yy</span>
+            </div>
+            <div>
+              <input 
+                type="time" 
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
+              />
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">hh:mm</span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-4">
             <button onClick={() => setPreset(7, 0)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 rounded-md transition-colors">1 Week</button>
