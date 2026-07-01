@@ -4,6 +4,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { Account, ModelType, SortOption, HistoryEvent } from './types';
 import { AccountTable } from './components/AccountTable';
 import { HistoryLog } from './components/HistoryLog';
+import { WifiTracker } from './components/WifiTracker';
 import { AddAccountModal } from './components/AddAccountModal';
 import { SetResetModal } from './components/SetResetModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -14,7 +15,7 @@ export default function App() {
   const [history, setHistory] = useLocalStorage<HistoryEvent[]>('ai-history', []);
   const [sortOption, setSortOption] = useState<SortOption>('next-any');
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi'>('dashboard');
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -26,6 +27,7 @@ export default function App() {
   
   // Modal states
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [setModalConfig, setSetModalConfig] = useState<{
     isOpen: boolean;
     account: Account | null;
@@ -122,15 +124,30 @@ export default function App() {
   }, []);
 
 
-  const handleAddAccount = (email: string) => {
-    const newAccount: Account = {
-      id: crypto.randomUUID(),
-      email,
-      geminiResetDate: null,
-      claudeResetDate: null,
-    };
-    setAccounts([...accounts, newAccount]);
+  const handleSaveAccount = (email: string) => {
+    if (editingAccount) {
+      setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, email } : a));
+      setEditingAccount(null);
+    } else {
+      const newAccount: Account = {
+        id: crypto.randomUUID(),
+        email,
+        geminiResetDate: null,
+        claudeResetDate: null,
+      };
+      setAccounts([...accounts, newAccount]);
+    }
     setIsAddOpen(false);
+  };
+
+  const openAddForm = () => {
+    setEditingAccount(null);
+    setIsAddOpen(true);
+  };
+
+  const openEditForm = (account: Account) => {
+    setEditingAccount(account);
+    setIsAddOpen(true);
   };
 
   const handleDeleteAccount = (id: string) => {
@@ -213,21 +230,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
-      <div className="flex justify-end mb-4">
-        <button 
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2.5 rounded-lg border transition-colors flex items-center justify-center bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-        >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-      </div>
-
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-blue-500" />
             AI Quota Tracker
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-1.5 ml-2 rounded-md border transition-colors flex items-center justify-center bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </h1>
           <p className="text-zinc-400 text-sm mt-1">Manage weekly limits across your Google accounts.</p>
         </div>
@@ -260,7 +274,7 @@ export default function App() {
           </div>
 
           <button 
-            onClick={() => setIsAddOpen(true)}
+            onClick={openAddForm}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
           >
             <Plus className="w-4 h-4" />
@@ -290,35 +304,70 @@ export default function App() {
         >
           Usage History
         </button>
+        <button
+          onClick={() => setActiveTab('wifi')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'wifi'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+          }`}
+        >
+          Wifi Subscriptions
+        </button>
       </div>
 
       {activeTab === 'dashboard' && (
         <>
           {accounts.length > 0 && (() => {
             const totalSlots = accounts.length * 2;
+            let availableGemini = 0;
+            let availableClaude = 0;
             const availableSlots = accounts.reduce((acc, account) => {
               let count = 0;
-              if (isAvailable(account.geminiResetDate)) count++;
-              if (isAvailable(account.claudeResetDate)) count++;
+              if (isAvailable(account.geminiResetDate)) {
+                count++;
+                availableGemini++;
+              }
+              if (isAvailable(account.claudeResetDate)) {
+                count++;
+                availableClaude++;
+              }
               return acc + count;
             }, 0);
             const progressPercent = totalSlots === 0 ? 0 : Math.round((availableSlots / totalSlots) * 100);
 
             return (
-              <div className="mb-8 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-xl p-4 md:p-5 backdrop-blur-sm shadow-sm dark:shadow-lg">
-                <div className="flex justify-between items-end mb-3">
-                  <div>
-                    <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Overall Availability</h2>
-                    <p className="text-xs text-zinc-500 mt-0.5">{availableSlots} of {totalSlots} models ready</p>
+              <div className="mb-8 flex flex-col md:flex-row gap-6 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-xl p-4 md:p-5 backdrop-blur-sm shadow-sm dark:shadow-lg">
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="flex justify-between items-end mb-3">
+                    <div>
+                      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Overall Availability</h2>
+                      <p className="text-xs text-zinc-500 mt-0.5">{availableSlots} of {totalSlots} models available</p>
+                    </div>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{progressPercent}%</span>
                   </div>
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{progressPercent}%</span>
+                  <div className="w-full h-2.5 bg-zinc-100 dark:bg-zinc-950 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-800/50">
+                    <div 
+                      className="h-full bg-blue-500 transition-all duration-1000 ease-out relative"
+                      style={{ width: `${progressPercent}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_ease-in-out_infinite]"></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full h-2.5 bg-zinc-100 dark:bg-zinc-950 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-800/50">
-                  <div 
-                    className="h-full bg-blue-500 transition-all duration-1000 ease-out relative"
-                    style={{ width: `${progressPercent}%` }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_ease-in-out_infinite]"></div>
+                
+                <div className="flex gap-2 sm:gap-4 md:border-l md:border-zinc-200 dark:md:border-zinc-800 md:pl-6 shrink-0">
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
+                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Total Emails</div>
+                    <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{accounts.length}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
+                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Gemini Available</div>
+                    <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{availableGemini}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
+                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Claude Available</div>
+                    <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{availableClaude}</div>
                   </div>
                 </div>
               </div>
@@ -332,6 +381,7 @@ export default function App() {
               onSetLimit={(account, model) => setSetModalConfig({ isOpen: true, account, model })}
               onClearLimit={requestClearLimit}
               onDeleteAccount={requestDeleteAccount}
+              onEditAccount={openEditForm}
             />
           </main>
         </>
@@ -344,10 +394,19 @@ export default function App() {
         />
       )}
 
+      {activeTab === 'wifi' && (
+        <WifiTracker />
+      )}
+
       <AddAccountModal 
         isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onAdd={handleAddAccount}
+        onClose={() => {
+          setIsAddOpen(false);
+          setEditingAccount(null);
+        }}
+        onSave={handleSaveAccount}
+        existingEmails={accounts.map(a => a.email)}
+        initialEmail={editingAccount?.email}
       />
 
       <SetResetModal 

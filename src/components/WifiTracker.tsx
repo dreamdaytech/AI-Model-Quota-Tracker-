@@ -1,0 +1,259 @@
+import React, { useState } from 'react';
+import { Wifi, Plus, Trash2, Clock, CalendarDays, Edit2 } from 'lucide-react';
+import { WifiSubscription, WifiDuration } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+export function WifiTracker() {
+  const [subscriptions, setSubscriptions] = useLocalStorage<WifiSubscription[]>('wifi-subscriptions', []);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingSub, setEditingSub] = useState<WifiSubscription | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newDuration, setNewDuration] = useState<WifiDuration>(1);
+  const [newStartDate, setNewStartDate] = useState<string>('');
+  const [, setTick] = useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    const startDate = newStartDate ? new Date(newStartDate) : new Date();
+
+    if (editingSub) {
+      const updatedSub = { ...editingSub, name: newName.trim(), durationDays: newDuration, startDate: startDate.toISOString() };
+      updatedSub.endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
+      
+      setSubscriptions(subscriptions.map(s => s.id === editingSub.id ? updatedSub : s));
+      setEditingSub(null);
+    } else {
+      const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000);
+
+      const newSub: WifiSubscription = {
+        id: crypto.randomUUID(),
+        name: newName.trim(),
+        durationDays: newDuration,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+
+      setSubscriptions([...subscriptions, newSub]);
+    }
+    
+    setIsAddOpen(false);
+    setNewName('');
+    setNewDuration(1);
+    setNewStartDate('');
+  };
+
+  const handleEdit = (sub: WifiSubscription) => {
+    setEditingSub(sub);
+    setNewName(sub.name);
+    setNewDuration(sub.durationDays);
+    const d = new Date(sub.startDate);
+    // Format to YYYY-MM-DDTHH:mm
+    const tzOffset = d.getTimezoneOffset() * 60000; // offset in milliseconds
+    const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+    setNewStartDate(localISOTime);
+    setIsAddOpen(true);
+  };
+
+  const openAddForm = () => {
+    const d = new Date();
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+    setNewStartDate(localISOTime);
+    setIsAddOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsAddOpen(false);
+    setEditingSub(null);
+    setNewName('');
+    setNewDuration(1);
+    setNewStartDate('');
+  };
+
+  const handleDelete = (id: string) => {
+    setSubscriptions(subscriptions.filter(s => s.id !== id));
+  };
+
+  const getStatus = (endDate: string) => {
+    const now = new Date();
+    const end = new Date(endDate);
+    if (now > end) return { label: 'Expired', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10', border: 'border-red-200 dark:border-red-500/20' };
+    
+    const hoursLeft = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
+    if (hoursLeft < 24) return { label: 'Expiring Soon', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-500/10', border: 'border-orange-200 dark:border-orange-500/20' };
+    
+    return { label: 'Active', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' };
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-zinc-900 dark:text-white">
+          <Wifi className="w-5 h-5 text-blue-500" />
+          Wifi Subscriptions
+        </h2>
+        <button
+          onClick={openAddForm}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Subscription
+        </button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {subscriptions.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl">
+            No wifi subscriptions tracked. Add one to get started!
+          </div>
+        ) : (
+          subscriptions.map(sub => {
+            const status = getStatus(sub.endDate);
+            const endDate = new Date(sub.endDate);
+            
+            return (
+              <div key={sub.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden group">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-semibold text-zinc-900 dark:text-white truncate pr-16">{sub.name}</h3>
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      {sub.durationDays} Day{sub.durationDays > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div className="absolute top-4 right-4 flex items-center gap-1">
+                    <button
+                      onClick={() => handleEdit(sub)}
+                      className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"
+                      title="Edit Subscription"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(sub.id)}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                      title="Delete Subscription"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${status.bg} ${status.color} ${status.border} mb-4`}>
+                  {status.label}
+                </div>
+                
+                <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-950 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-800/50 mb-4">
+                  <div 
+                    className={`h-full transition-all duration-1000 ease-out ${
+                      status.label === 'Expired' ? 'bg-red-500' : 
+                      status.label === 'Expiring Soon' ? 'bg-orange-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.max(0, Math.min(100, ((endDate.getTime() - new Date().getTime()) / (sub.durationDays * 24 * 60 * 60 * 1000)) * 100))}%` }}
+                  />
+                </div>
+                
+                <div className="bg-zinc-50 dark:bg-zinc-950 rounded-lg p-3 border border-zinc-100 dark:border-zinc-800/80 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                    <CalendarDays className="w-4 h-4 text-zinc-400" />
+                    <span>Started: {new Date(sub.startDate).toLocaleDateString()} {new Date(sub.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                    <CalendarDays className="w-4 h-4 text-zinc-400" />
+                    <span>Renews: {endDate.toLocaleDateString()} {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
+              {editingSub ? 'Edit Subscription' : 'Track Wifi Subscription'}
+            </h3>
+            <form onSubmit={handleAdd}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    User or Device Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. John's Phone"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Start Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newStartDate}
+                    onChange={(e) => setNewStartDate(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Duration
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 3, 5, 7].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setNewDuration(days as WifiDuration)}
+                        className={`py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          newDuration === days
+                            ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400'
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                        }`}
+                      >
+                        {days} Day{days > 1 ? 's' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+                >
+                  {editingSub ? 'Save Changes' : 'Start Tracking'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

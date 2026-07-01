@@ -1,7 +1,7 @@
 import React from 'react';
 import { Account, ModelType, SortOption } from '../types';
 import { StatusBadge } from './StatusBadge';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit2 } from 'lucide-react';
 import { isAvailable } from '../utils/time';
 
 interface AccountTableProps {
@@ -10,9 +10,10 @@ interface AccountTableProps {
   onSetLimit: (account: Account, model: ModelType) => void;
   onClearLimit: (accountId: string, model: ModelType) => void;
   onDeleteAccount: (accountId: string) => void;
+  onEditAccount: (account: Account) => void;
 }
 
-export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, onDeleteAccount }: AccountTableProps) {
+export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, onDeleteAccount, onEditAccount }: AccountTableProps) {
   
   const sortedAccounts = [...accounts].sort((a, b) => {
     if (sortOption === 'email') {
@@ -73,13 +74,22 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
                   <div className={`w-2 h-2 shrink-0 rounded-full ${isFullyAvailable ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
                   <span className="font-medium text-zinc-800 dark:text-zinc-200 break-all">{account.email}</span>
                 </div>
-                <button 
-                  onClick={() => onDeleteAccount(account.id)}
-                  className="md:hidden p-2 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors"
-                  title="Remove account"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex md:hidden items-center gap-1">
+                  <button 
+                    onClick={() => onEditAccount(account)}
+                    className="p-2 text-zinc-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-400/10 rounded-lg transition-colors"
+                    title="Edit account email"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteAccount(account.id)}
+                    className="p-2 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors"
+                    title="Remove account"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 md:contents">
@@ -109,10 +119,17 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
                 </div>
               </div>
 
-              <div className="hidden md:flex justify-end">
+              <div className="hidden md:flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <button 
+                  onClick={() => onEditAccount(account)}
+                  className="p-2 text-zinc-400 dark:text-zinc-600 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-400/10 rounded-lg focus:opacity-100"
+                  title="Edit account email"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
                 <button 
                   onClick={() => onDeleteAccount(account.id)}
-                  className="p-2 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
+                  className="p-2 text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg focus:opacity-100"
                   title="Remove account"
                 >
                   <Trash2 className="w-4 h-4" />

@@ -18,3 +18,13 @@ export interface HistoryEvent {
 }
 
 export type SortOption = 'email' | 'next-gemini' | 'next-claude' | 'next-any';
+
+export type WifiDuration = 1 | 3 | 5 | 7;
+
+export interface WifiSubscription {
+  id: string;
+  name: string;
+  durationDays: WifiDuration;
+  startDate: string;
+  endDate: string;
+}
