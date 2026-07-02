@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wifi, Plus, Trash2, Clock, CalendarDays, Edit2 } from 'lucide-react';
+import { Wifi, Plus, Trash2, Clock, CalendarDays, Edit2, Search, Filter, ArrowUpDown } from 'lucide-react';
 import { WifiSubscription, WifiDuration } from '../types';
 import { useFirestoreData } from '../hooks/useFirestoreData';
 import { auth } from '../firebase';
@@ -21,6 +21,9 @@ export function WifiTracker() {
   const [newStartTime, setNewStartTime] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
+  const [sortBy, setSortBy] = useState<'endDate-asc' | 'endDate-desc' | 'name-asc' | 'name-desc'>('endDate-asc');
   const [, setTick] = useState(0);
 
   React.useEffect(() => {
@@ -111,9 +114,30 @@ export function WifiTracker() {
     return { label: 'Active', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' };
   };
 
+  const filteredAndSortedSubscriptions = (subscriptions || [])
+    .filter(sub => {
+      if (searchQuery && !sub.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (filterStatus !== 'all') {
+        const status = getStatus(sub?.endDate || new Date().toISOString());
+        if (filterStatus === 'expired' && status.label !== 'Expired') return false;
+        if (filterStatus === 'expiring' && status.label !== 'Expiring Soon') return false;
+        if (filterStatus === 'active' && status.label !== 'Active') return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      const dateA = new Date(a.endDate).getTime();
+      const dateB = new Date(b.endDate).getTime();
+      if (sortBy === 'endDate-asc') return dateA - dateB;
+      if (sortBy === 'endDate-desc') return dateB - dateA;
+      return 0;
+    });
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold flex items-center gap-2 text-zinc-900 dark:text-white">
           <Wifi className="w-5 h-5 text-blue-500" />
           Wifi Subscriptions
@@ -127,13 +151,58 @@ export function WifiTracker() {
         </button>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <input 
+            type="text" 
+            placeholder="Search subscriptions..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <select 
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as any)}
+              className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-colors"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          
+          <div className="relative">
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <select 
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-colors"
+            >
+              <option value="endDate-asc">Expiring First</option>
+              <option value="endDate-desc">Expiring Last</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {!subscriptions || subscriptions.length === 0 ? (
+        {filteredAndSortedSubscriptions.length === 0 ? (
           <div className="col-span-full py-12 text-center text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl">
-            No wifi subscriptions tracked. Add one to get started!
+            {subscriptions && subscriptions.length > 0 
+              ? 'No subscriptions match your search and filters.' 
+              : 'No wifi subscriptions tracked. Add one to get started!'}
           </div>
         ) : (
-          (subscriptions || []).map(sub => {
+          filteredAndSortedSubscriptions.map(sub => {
             const status = getStatus(sub?.endDate || new Date().toISOString());
             const endDate = new Date(sub?.endDate || new Date().toISOString());
             
