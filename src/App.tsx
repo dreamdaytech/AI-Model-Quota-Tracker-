@@ -41,7 +41,6 @@ export default function App() {
     clear: clearHistory,
   } = useFirestoreData<HistoryEvent>(user, 'history');
 
-  const [sortOption, setSortOption] = useState<SortOption>('next-any');
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi'>('dashboard');
   
@@ -284,20 +283,6 @@ export default function App() {
           >
             {notificationsEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
           </button>
-          
-          <div className="relative group">
-            <select 
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as SortOption)}
-              className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 py-2.5 pl-10 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
-            >
-              <option value="next-any">Sort by: Next Available</option>
-              <option value="next-gemini">Sort by: Gemini First</option>
-              <option value="next-claude">Sort by: Claude First</option>
-              <option value="email">Sort by: Email</option>
-            </select>
-            <Settings2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-          </div>
 
           <button 
             onClick={openAddForm}
@@ -403,7 +388,6 @@ export default function App() {
           <main className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl overflow-hidden backdrop-blur-sm shadow-sm dark:shadow-2xl">
             <AccountTable 
               accounts={accounts}
-              sortOption={sortOption}
               onSetLimit={(account, model) => setSetModalConfig({ isOpen: true, account, model })}
               onClearLimit={requestClearLimit}
               onDeleteAccount={requestDeleteAccount}

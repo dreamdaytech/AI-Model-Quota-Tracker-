@@ -1,21 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Account, ModelType, SortOption } from '../types';
 import { StatusBadge } from './StatusBadge';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, Search, Filter, ArrowUpDown } from 'lucide-react';
 import { isAvailable } from '../utils/time';
 
 interface AccountTableProps {
   accounts: Account[];
-  sortOption: SortOption;
   onSetLimit: (account: Account, model: ModelType) => void;
   onClearLimit: (accountId: string, model: ModelType) => void;
   onDeleteAccount: (accountId: string) => void;
   onEditAccount: (account: Account) => void;
 }
 
-export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, onDeleteAccount, onEditAccount }: AccountTableProps) {
+export function AccountTable({ accounts, onSetLimit, onClearLimit, onDeleteAccount, onEditAccount }: AccountTableProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'any-avail' | 'gemini-avail' | 'claude-avail' | 'none-avail'>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('next-any');
   
-  const sortedAccounts = [...accounts].sort((a, b) => {
+  const filteredAccounts = [...(accounts || [])].filter(acc => {
+    if (searchQuery && !acc.email.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    
+    if (filterStatus !== 'all') {
+      const geminiAvail = isAvailable(acc.geminiResetDate);
+      const claudeAvail = isAvailable(acc.claudeResetDate);
+      if (filterStatus === 'any-avail' && !geminiAvail && !claudeAvail) return false;
+      if (filterStatus === 'none-avail' && (geminiAvail || claudeAvail)) return false;
+      if (filterStatus === 'gemini-avail' && !geminiAvail) return false;
+      if (filterStatus === 'claude-avail' && !claudeAvail) return false;
+    }
+    return true;
+  });
+
+  const sortedAccounts = filteredAccounts.sort((a, b) => {
     if (sortOption === 'email') {
       return a.email.localeCompare(b.email);
     }
@@ -48,6 +64,51 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
 
   return (
     <div className="w-full">
+      {/* Search, Filter, Sort Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/20">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <input 
+            type="text" 
+            placeholder="Search accounts..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <select 
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as any)}
+              className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-colors"
+            >
+              <option value="all">All Status</option>
+              <option value="any-avail">Any Available</option>
+              <option value="gemini-avail">Gemini Available</option>
+              <option value="claude-avail">Claude Available</option>
+              <option value="none-avail">None Available</option>
+            </select>
+          </div>
+          
+          <div className="relative">
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <select 
+              value={sortOption}
+              onChange={e => setSortOption(e.target.value as SortOption)}
+              className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-colors"
+            >
+              <option value="next-any">Expiring First</option>
+              <option value="next-gemini">Gemini First</option>
+              <option value="next-claude">Claude First</option>
+              <option value="email">Email (A-Z)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Desktop Header */}
       <div className="hidden md:grid grid-cols-[1fr_200px_200px_60px] gap-4 border-b border-zinc-200 dark:border-zinc-800 text-xs uppercase tracking-wider text-zinc-500 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-4 font-medium rounded-t-xl">
         <div>Google Account</div>
@@ -57,6 +118,11 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
       </div>
 
       <div className="divide-y divide-zinc-200 dark:divide-zinc-800/50 bg-white/50 dark:bg-zinc-900/20">
+        {sortedAccounts.length === 0 && (
+          <div className="text-center py-12 px-4">
+            <p className="text-zinc-500">No accounts match your search and filters.</p>
+          </div>
+        )}
         {sortedAccounts.map((account) => {
           const geminiAvailable = isAvailable(account.geminiResetDate);
           const claudeAvailable = isAvailable(account.claudeResetDate);
