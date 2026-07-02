@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase';
-import { Sparkles, LogIn } from 'lucide-react';
+import { Sparkles, LogIn, ArrowLeft } from 'lucide-react';
 
-export function Login() {
+interface LoginProps {
+  onBack?: () => void;
+}
+
+export function Login({ onBack }: LoginProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,12 +26,24 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 w-full max-w-md shadow-xl text-center">
-        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Sparkles className="w-8 h-8 text-blue-500" />
+    <div className="min-h-screen flex flex-col p-4 bg-zinc-50 dark:bg-zinc-950">
+      {onBack && (
+        <div className="w-full max-w-6xl mx-auto py-4">
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </button>
         </div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Welcome</h1>
+      )}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 w-full max-w-md shadow-xl text-center">
+          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Sparkles className="w-8 h-8 text-blue-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Welcome</h1>
         <p className="text-zinc-500 dark:text-zinc-400 mb-8">
           Sign in to access your cross-device quota tracker and wifi subscriptions.
         </p>
@@ -46,6 +62,7 @@ export function Login() {
           <LogIn className="w-5 h-5" />
           {loading ? 'Signing in...' : 'Sign in with Google'}
         </button>
+      </div>
       </div>
     </div>
   );
