@@ -304,7 +304,7 @@ export default function App() {
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
           }`}
         >
-          Dashboard
+          AI Limits
         </button>
         <button
           onClick={() => setActiveTab('history')}
