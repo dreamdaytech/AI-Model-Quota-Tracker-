@@ -268,7 +268,7 @@ export default function App() {
               <LogOut className="w-4 h-4" />
             </button>
           </h1>
-          <p className="text-zinc-400 text-sm mt-1">Manage weekly limits across your Google accounts.</p>
+          <p className="text-zinc-400 text-sm mt-1">Manage weekly limits across your accounts and track active subscriptions.</p>
         </div>
         
         <div className="flex items-center gap-3">
