@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Bell, BellOff, Settings2, Sparkles, X, Sun, Moon, LogOut } from 'lucide-react';
+import { Plus, Bell, BellOff, Settings2, Sparkles, X, Sun, Moon, LogOut, History, ExternalLink } from 'lucide-react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { Account, ModelType, SortOption, HistoryEvent } from './types';
 import { AccountTable } from './components/AccountTable';
@@ -55,6 +55,7 @@ export default function App() {
   
   // Modal states
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [setModalConfig, setSetModalConfig] = useState<{
     isOpen: boolean;
@@ -398,10 +399,14 @@ export default function App() {
           </main>
 
           <div className="mt-8">
-            <HistoryLog 
-              history={history}
-              onClear={requestClearHistory}
-            />
+            <button 
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors w-full sm:w-auto shadow-sm"
+            >
+              <History className="w-5 h-5 text-blue-500" />
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">View Usage History</span>
+              <ExternalLink className="w-4 h-4 text-zinc-400 ml-1" />
+            </button>
           </div>
         </>
       )}
@@ -441,6 +446,27 @@ export default function App() {
         onConfirm={confirmConfig.onConfirm}
         onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
       />
+
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8">
+          <div className="bg-zinc-50 dark:bg-zinc-950 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col relative overflow-hidden border border-zinc-200 dark:border-zinc-800">
+            <div className="absolute top-4 right-4 z-10">
+              <button 
+                onClick={() => setIsHistoryOpen(false)}
+                className="p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 hover:text-zinc-900 dark:hover:text-white shadow-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              <HistoryLog 
+                history={history}
+                onClear={requestClearHistory}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Container */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
