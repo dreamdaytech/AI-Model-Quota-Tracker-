@@ -107,7 +107,10 @@ export function CategoryManagerModal({
               {categories.map((category) => (
                 <div key={category.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-xl group hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors">
                   {editingId === category.id ? (
-                    <div className="flex flex-1 gap-2 mr-2">
+                    <form 
+                      onSubmit={(e) => { e.preventDefault(); handleUpdate(); }} 
+                      className="flex flex-1 gap-2 mr-2"
+                    >
                       <input
                         type="text"
                         value={editName}
@@ -116,7 +119,7 @@ export function CategoryManagerModal({
                         autoFocus
                       />
                       <button
-                        onClick={handleUpdate}
+                        type="submit"
                         disabled={!editName.trim()}
                         className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50"
                         title="Save"
@@ -124,13 +127,14 @@ export function CategoryManagerModal({
                         <Check className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setEditingId(null)}
                         className="p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                         title="Cancel"
                       >
                         <X className="w-4 h-4" />
                       </button>
-                    </div>
+                    </form>
                   ) : (
                     <>
                       <span className="font-medium text-zinc-700 dark:text-zinc-200 text-sm truncate pl-1">

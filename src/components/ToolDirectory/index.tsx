@@ -181,7 +181,7 @@ export function ToolDirectory() {
               key={tool.id} 
               tool={tool} 
               onEdit={openEditForm}
-              onDelete={(id) => setConfirmDelete({ isOpen: true, id })}
+              onDelete={(id) => setConfirmDelete({ isOpen: true, id, type: 'tool' })}
             />
           ))}
         </div>
