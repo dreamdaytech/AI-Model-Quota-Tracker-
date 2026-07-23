@@ -28,3 +28,16 @@ export interface WifiSubscription {
   startDate: string;
   endDate: string;
 }
+
+export interface ResourceTool {
+  id: string;
+  name: string;
+  url: string;
+  category: string;
+  description: string;
+  details?: string;
+  pricingModel?: string;
+  loginNotes?: string;
+  tags?: string[];
+  createdAt?: string;
+}

@@ -12,6 +12,7 @@ import { isAvailable } from './utils/time';
 import { Login } from './components/Login';
 import { Home } from './components/Home';
 import { SubscriptionManager } from './components/SubscriptionManager';
+import { ToolDirectory } from './components/ToolDirectory';
 import { auth } from './firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { useFirestoreData } from './hooks/useFirestoreData';
@@ -43,7 +44,7 @@ export default function App() {
   } = useFirestoreData<HistoryEvent>(user, 'history');
 
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'wifi' | 'subscriptions'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'wifi' | 'subscriptions' | 'tools'>('dashboard');
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -328,6 +329,16 @@ export default function App() {
         >
           General Subscriptions
         </button>
+        <button
+          onClick={() => setActiveTab('tools')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
+            activeTab === 'tools'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+          }`}
+        >
+          Tool Directory
+        </button>
       </div>
 
       {activeTab === 'dashboard' && (
@@ -417,6 +428,10 @@ export default function App() {
 
       {activeTab === 'subscriptions' && (
         <SubscriptionManager />
+      )}
+
+      {activeTab === 'tools' && (
+        <ToolDirectory />
       )}
 
       <AddAccountModal 
